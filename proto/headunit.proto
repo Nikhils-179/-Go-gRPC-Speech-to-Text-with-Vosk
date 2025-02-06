@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package headunit;
+option go_package = "audio-texttranscript/proto/headunit";
+
+service HeadUnitService {
+  rpc StreamAudio(stream AudioChunk) returns (stream Transcription);
+}
+
+message AudioChunk {
+  bytes data = 1;
+  string session_id = 2;
+}
+
+message Transcription {
+  string text = 1;
+  string session_id = 2;
+}

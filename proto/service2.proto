@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package service2;
+option go_package = "audio-texttranscript/proto/service2";
+
+// Service2 converts audio to text.
+service AudioToTextService {
+  rpc ConvertAudioToText(stream AudioChunk) returns (stream Transcription);
+}
+
+message AudioChunk {
+  bytes data = 1;
+  string session_id = 2;
+}
+
+message Transcription {
+  string text = 1;
+  string session_id = 2;
+}
