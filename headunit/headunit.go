@@ -20,11 +20,11 @@ import (
 )
 
 const (
-    sampleRate = 16000// use a standard sample rate for microphone input
-    chunkSize  = 8192  // try a larger buffer size
+    sampleRate = 16000// a standard sample rate for microphone input
+    chunkSize  = 8192  // a larger buffer size
 )
 
-// int16SliceToBytes converts a slice of int16 PCM samples to a byte slice (little-endian).
+// int16SliceToBytes converts a slice of int16 PCM samples to a byte slice (audio signal into digital representation)
 func int16SliceToBytes(data []int16) []byte {
 	bytes := make([]byte, len(data)*2)
 	for i, sample := range data {
@@ -34,8 +34,7 @@ func int16SliceToBytes(data []int16) []byte {
 	return bytes
 }
 
-// ---------- gRPC Implementation for HeadUnit ----------
-
+// gRPC Implementation for HeadUnit 
 type headUnitServer struct {
 	pb_headunit.UnimplementedHeadUnitServiceServer
 }
@@ -63,7 +62,7 @@ func (s *headUnitServer) StreamAudio(stream pb_headunit.HeadUnitService_StreamAu
 	}
 	defer portaudio.Terminate()
 
-	// Open the default input stream (mono, sampleRate 16000).
+	// default input stream
 	buffer := make([]int16, 512)
 	streamIn, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), buffer)
 	if err != nil {
@@ -132,7 +131,7 @@ func restSendAudioHandler(w http.ResponseWriter, r *http.Request) {
 	defer portaudio.Terminate()
 
 	// Open default input stream: 1 channel, sampleRate 16000.
-	buffer := make([]int16, 4096) // Increased buffer size
+	buffer := make([]int16, 512) // Increased buffer size
 	streamIn, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), buffer)
 	if err != nil {
 		http.Error(w, "failed to open stream", http.StatusInternalServerError)
@@ -149,7 +148,7 @@ func restSendAudioHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("HeadUnit REST: Recording audio from microphone... Please speak now.")
 
 	// Use buffered channels for better concurrency.
-	audioCh := make(chan []byte, 500) // Increased buffer to avoid overflow
+	audioCh := make(chan []byte, 512) // Increased buffer to avoid overflow
 	done := make(chan struct{})
 
 	// Goroutine to read audio continuously
@@ -179,14 +178,14 @@ func restSendAudioHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	audioData := new(bytes.Buffer)
 
-	// Capture audio for a fixed duration
+	// Capture audio for a fixed duration(5 secnds)
 	stopTime := time.Now().Add(5 * time.Second)
 	for time.Now().Before(stopTime) {
 		select {
 		case chunk := <-audioCh:
 			audioData.Write(chunk)
 			// Send in smaller chunks to avoid delays
-			if audioData.Len() > 1024*5 { 
+			if audioData.Len() > chunkSize*5 { 
 				go func(data []byte) {
 					resp, err := client.Post(service1URL, "application/octet-stream", bytes.NewReader(data))
 					if err != nil {
